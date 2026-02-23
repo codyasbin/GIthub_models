@@ -5,7 +5,7 @@ const ai = new GoogleGenAI({});
 
 export async function POST(request) {
   try {
-    const { input } = await request.json();
+    const { input, model } = await request.json();
     
     if (!input || !input.trim()) {
       return new Response(
@@ -17,9 +17,11 @@ export async function POST(request) {
       );
     }
 
-    // Use the latest Gemini 3 Flash model
+    // Use the selected model, default to gemini-2.5-flash if not provided
+    const selectedModel = model || "gemini-2.5-flash";
+    
     const response = await ai.models.generateContent({
-      model: "gemini-3-flash-preview",
+      model: selectedModel,
       contents: input,
     });
 
@@ -37,7 +39,8 @@ export async function POST(request) {
     return new Response(
       JSON.stringify({ 
         error: "Failed to generate response",
-        details: error.message 
+        message: error.message || "An unknown error occurred",
+        details: error.toString()
       }), 
       { 
         status: 500,

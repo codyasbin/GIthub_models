@@ -4,10 +4,21 @@
 
 import { useState, useRef, useEffect } from "react";
 
+const GEMINI_MODELS = [
+  { value: "gemini-3.1-pro-preview", label: "Gemini 3.1 Pro (Preview)", category: "Gemini 3" },
+  { value: "gemini-3-flash-preview", label: "Gemini 3 Flash (Preview)", category: "Gemini 3" },
+  { value: "gemini-3-pro-preview", label: "Gemini 3 Pro (Preview)", category: "Gemini 3" },
+  { value: "gemini-2.5-flash", label: "Gemini 2.5 Flash (Stable)", category: "Gemini 2.5 Flash" },
+  { value: "gemini-2.5-flash-lite", label: "Gemini 2.5 Flash-Lite (Fastest)", category: "Gemini 2.5 Flash-Lite" },
+  { value: "gemini-2.5-pro", label: "Gemini 2.5 Pro (Advanced)", category: "Gemini 2.5 Pro" },
+];
+
 export default function Gemini() {
   const [messages, setMessages] = useState([]);
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [selectedModel, setSelectedModel] = useState("gemini-2.5-flash");
+  const [error, setError] = useState(null);
   const messagesEndRef = useRef(null);
 
   const scrollToBottom = () => {
@@ -24,6 +35,7 @@ export default function Gemini() {
 
     const userMessage = input.trim();
     setInput("");
+    setError(null);
     
     // Add user message to chat
     setMessages(prev => [...prev, { role: "user", content: userMessage }]);
@@ -35,14 +47,17 @@ export default function Gemini() {
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ input: userMessage }),
+        body: JSON.stringify({ 
+          input: userMessage,
+          model: selectedModel 
+        }),
       });
 
-      if (!response.ok) {
-        throw new Error("Failed to get response");
-      }
-
       const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.message || data.error || "Failed to get response");
+      }
       
       // Add assistant message to chat
       setMessages(prev => [...prev, { 
@@ -51,9 +66,11 @@ export default function Gemini() {
       }]);
     } catch (error) {
       console.error("Error:", error);
+      const errorMessage = error.message || "Sorry, I encountered an error. Please try again.";
+      setError(errorMessage);
       setMessages(prev => [...prev, { 
-        role: "assistant", 
-        content: "Sorry, I encountered an error. Please try again." 
+        role: "error", 
+        content: errorMessage
       }]);
     } finally {
       setIsLoading(false);
@@ -65,13 +82,37 @@ export default function Gemini() {
       {/* Header */}
       <div className="bg-white dark:bg-gray-800 shadow-md">
         <div className="max-w-4xl mx-auto px-4 py-4">
-          <h1 className="text-2xl font-bold text-gray-800 dark:text-white flex items-center gap-2">
-            <span className="text-3xl">✨</span>
-            Gemini AI Chat
-          </h1>
-          <p className="text-sm text-gray-600 dark:text-gray-300 mt-1">
-            Powered by Google's Gemini 1.5 Pro
-          </p>
+          <div className="flex items-center justify-between">
+            <div>
+              <h1 className="text-2xl font-bold text-gray-800 dark:text-white flex items-center gap-2">
+                <span className="text-3xl">✨</span>
+                Gemini AI Chat
+              </h1>
+              <p className="text-sm text-gray-600 dark:text-gray-300 mt-1">
+                Powered by Google's {GEMINI_MODELS.find(m => m.value === selectedModel)?.label}
+              </p>
+            </div>
+            <div>
+              <label className="text-sm text-gray-600 dark:text-gray-300 block mb-1">
+                Model
+              </label>
+              <select
+                value={selectedModel}
+                onChange={(e) => setSelectedModel(e.target.value)}
+                disabled={isLoading}
+                className="px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 
+                         focus:outline-none focus:ring-2 focus:ring-indigo-500 
+                         dark:bg-gray-700 dark:text-white text-sm
+                         disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {GEMINI_MODELS.map((model) => (
+                  <option key={model.value} value={model.value}>
+                    {model.label}
+                  </option>
+                ))}
+              </select>
+            </div>
+          </div>
         </div>
       </div>
 
@@ -93,18 +134,23 @@ export default function Gemini() {
           {messages.map((message, index) => (
             <div
               key={index}
-              className={`flex ${message.role === "user" ? "justify-end" : "justify-start"}`}
+              className={`flex ${
+                message.role === "user" ? "justify-end" : 
+                message.role === "error" ? "justify-center" : "justify-start"
+              }`}
             >
               <div
                 className={`max-w-[80%] rounded-2xl px-4 py-3 ${
                   message.role === "user"
                     ? "bg-indigo-600 text-white"
+                    : message.role === "error"
+                    ? "bg-red-100 dark:bg-red-900 text-red-800 dark:text-red-200 shadow-md border-2 border-red-300 dark:border-red-700"
                     : "bg-white dark:bg-gray-700 text-gray-800 dark:text-gray-200 shadow-md"
                 }`}
               >
                 <div className="flex items-start gap-2">
                   <span className="text-lg">
-                    {message.role === "user" ? "👤" : "🤖"}
+                    {message.role === "user" ? "👤" : message.role === "error" ? "⚠️" : "🤖"}
                   </span>
                   <div className="flex-1">
                     <p className="whitespace-pre-wrap break-words">
