@@ -44,12 +44,14 @@ import OpenAI from "openai";
 
 
 const BASE_URL = "http://localhost:12434/v1";
+const REMOTE_BASE_URL = "http://192.168.18.49:12434/v1"; // for logging only
 const MODEL = "ai/gemma3:270M-F16";
+const REMOTE_MODEL="d23f1d398f07"; // for logging only
 
 // OpenAI SDK still expects a key (even if local) u can use dummy key
 const client = new OpenAI({
   apiKey: "local-docker-model-runner",
-  baseURL: BASE_URL
+  baseURL: BASE_URL 
 });
 
 
