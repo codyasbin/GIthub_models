@@ -3,6 +3,10 @@
 // this is not a github model , this ai model is from google ai studio 
 
 import { useState, useRef, useEffect } from "react";
+import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
+import rehypeHighlight from "rehype-highlight";
+import "highlight.js/styles/github-dark.css";
 
 const GEMINI_MODELS = [
   { value: "gemini-3.1-pro-preview", label: "Gemini 3.1 Pro (Preview)", category: "Gemini 3" },
@@ -152,10 +156,61 @@ export default function Gemini() {
                   <span className="text-lg">
                     {message.role === "user" ? "👤" : message.role === "error" ? "⚠️" : "🤖"}
                   </span>
-                  <div className="flex-1">
-                    <p className="whitespace-pre-wrap break-words">
-                      {message.content}
-                    </p>
+                  <div className="flex-1 prose prose-sm dark:prose-invert max-w-none">
+                    {message.role === "assistant" ? (
+                      <ReactMarkdown
+                        remarkPlugins={[remarkGfm]}
+                        rehypePlugins={[rehypeHighlight]}
+                        components={{
+                          code: ({ node, inline, className, children, ...props }) => (
+                            inline ? (
+                              <code className="px-1.5 py-0.5 bg-gray-200 dark:bg-gray-800 rounded text-sm" {...props}>
+                                {children}
+                              </code>
+                            ) : (
+                              <code className={`${className} block p-3 rounded-lg overflow-x-auto`} {...props}>
+                                {children}
+                              </code>
+                            )
+                          ),
+                          p: ({ children }) => <p className="mb-2 last:mb-0">{children}</p>,
+                          ul: ({ children }) => <ul className="list-disc ml-4 mb-2">{children}</ul>,
+                          ol: ({ children }) => <ol className="list-decimal ml-4 mb-2">{children}</ol>,
+                          li: ({ children }) => <li className="mb-1">{children}</li>,
+                          h1: ({ children }) => <h1 className="text-2xl font-bold mb-2 mt-4">{children}</h1>,
+                          h2: ({ children }) => <h2 className="text-xl font-bold mb-2 mt-3">{children}</h2>,
+                          h3: ({ children }) => <h3 className="text-lg font-bold mb-2 mt-2">{children}</h3>,
+                          blockquote: ({ children }) => (
+                            <blockquote className="border-l-4 border-gray-300 dark:border-gray-600 pl-4 italic my-2">
+                              {children}
+                            </blockquote>
+                          ),
+                          table: ({ children }) => (
+                            <div className="overflow-x-auto my-2">
+                              <table className="min-w-full border-collapse border border-gray-300 dark:border-gray-600">
+                                {children}
+                              </table>
+                            </div>
+                          ),
+                          th: ({ children }) => (
+                            <th className="border border-gray-300 dark:border-gray-600 px-4 py-2 bg-gray-100 dark:bg-gray-800 font-semibold">
+                              {children}
+                            </th>
+                          ),
+                          td: ({ children }) => (
+                            <td className="border border-gray-300 dark:border-gray-600 px-4 py-2">
+                              {children}
+                            </td>
+                          ),
+                        }}
+                      >
+                        {message.content}
+                      </ReactMarkdown>
+                    ) : (
+                      <p className="whitespace-pre-wrap break-words">
+                        {message.content}
+                      </p>
+                    )}
                   </div>
                 </div>
               </div>
