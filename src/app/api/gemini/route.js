@@ -1,14 +1,49 @@
-import {GoogleGenAI} from "@google/genai";
+import { GoogleGenAI } from "@google/genai";
 
-export async function GET(request) {
-  const apiKey = process.env.GEMINI_API_KEY;
-  const genAI = new GoogleGenAI(apiKey);
-    const response = await genAI.generateContent({
-        model: "gemini-1.5-pro",
-        input: "What is Gemini AI model?"
+// The client gets the API key from the environment variable `GEMINI_API_KEY`.
+const ai = new GoogleGenAI({});
+
+export async function POST(request) {
+  try {
+    const { input } = await request.json();
+    
+    if (!input || !input.trim()) {
+      return new Response(
+        JSON.stringify({ error: "Input is required" }), 
+        { 
+          status: 400,
+          headers: { "Content-Type": "application/json" },
+        }
+      );
+    }
+
+    // Use the latest Gemini 3 Flash model
+    const response = await ai.models.generateContent({
+      model: "gemini-3-flash-preview",
+      contents: input,
     });
-    return new Response(JSON.stringify(response), { 
+
+    const text = response.text;
+
+    return new Response(
+      JSON.stringify({ text, response: text }), 
+      { 
+        status: 200,
         headers: { "Content-Type": "application/json" },
-    });
-}   
+      }
+    );
+  } catch (error) {
+    console.error("Gemini API Error:", error);
+    return new Response(
+      JSON.stringify({ 
+        error: "Failed to generate response",
+        details: error.message 
+      }), 
+      { 
+        status: 500,
+        headers: { "Content-Type": "application/json" },
+      }
+    );
+  }
+}
 
